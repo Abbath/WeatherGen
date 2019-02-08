@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'weather_gen.ui'
+#
+# Created by: PyQt5 UI code generator 5.11.2
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_WeatherGen(object):
+    def setupUi(self, WeatherGen):
+        WeatherGen.setObjectName("WeatherGen")
+        WeatherGen.resize(800, 600)
+        self.centralwidget = QtWidgets.QWidget(WeatherGen)
+        self.centralwidget.setObjectName("centralwidget")
+        self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
+        self.gridLayout.setObjectName("gridLayout")
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.generate = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.generate.sizePolicy().hasHeightForWidth())
+        self.generate.setSizePolicy(sizePolicy)
+        self.generate.setObjectName("generate")
+        self.gridLayout.addWidget(self.generate, 2, 0, 1, 3)
+        self.output = QtWidgets.QLineEdit(self.centralwidget)
+        self.output.setObjectName("output")
+        self.gridLayout.addWidget(self.output, 1, 1, 1, 1)
+        self.label_2 = QtWidgets.QLabel(self.centralwidget)
+        self.label_2.setObjectName("label_2")
+        self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
+        self.link = QtWidgets.QLineEdit(self.centralwidget)
+        self.link.setObjectName("link")
+        self.gridLayout.addWidget(self.link, 0, 1, 1, 2)
+        self.select = QtWidgets.QPushButton(self.centralwidget)
+        self.select.setObjectName("select")
+        self.gridLayout.addWidget(self.select, 1, 2, 1, 1)
+        self.log = QtWidgets.QPlainTextEdit(self.centralwidget)
+        self.log.setObjectName("log")
+        self.gridLayout.addWidget(self.log, 3, 0, 1, 3)
+        WeatherGen.setCentralWidget(self.centralwidget)
+        self.menubar = QtWidgets.QMenuBar(WeatherGen)
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 32))
+        self.menubar.setObjectName("menubar")
+        WeatherGen.setMenuBar(self.menubar)
+        self.statusbar = QtWidgets.QStatusBar(WeatherGen)
+        self.statusbar.setObjectName("statusbar")
+        WeatherGen.setStatusBar(self.statusbar)
+
+        self.retranslateUi(WeatherGen)
+        QtCore.QMetaObject.connectSlotsByName(WeatherGen)
+
+    def retranslateUi(self, WeatherGen):
+        _translate = QtCore.QCoreApplication.translate
+        WeatherGen.setWindowTitle(_translate("WeatherGen", "WeatherGen"))
+        self.label.setText(_translate("WeatherGen", "Link"))
+        self.generate.setText(_translate("WeatherGen", "GENERATE"))
+        self.label_2.setText(_translate("WeatherGen", "Output"))
+        self.select.setText(_translate("WeatherGen", "Select"))
+

@@ -163,21 +163,21 @@ def generate(table1, table2, sn, output):
 
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
-def process(link, output, verbose=False):
+def process(link, output, handler=print, verbose=False):
     if verbose:
-        print('Start main page processing...')
+        handler('Start main page processing...')
     r = requests.get(link)
     t = r.text
     parser1 = MyHTMLParser()
     parser1.feed(t)
     if verbose:
-        print(tabulate(parser1.table))
-        print('Start link processing...')
+        handler(tabulate(parser1.table))
+        handler('Start link processing...')
     table = []
     counter = 1
     for link in parser1.links:
         if verbose:
-            print('Processing link {}/{} ...'.format(counter, len(parser1.links)))
+            handler('Processing link {}/{} ...'.format(counter, len(parser1.links)))
         counter += 1
         link = 'https://www.ogimet.com' + link
         r = requests.get(link)
@@ -185,13 +185,13 @@ def process(link, output, verbose=False):
         parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
         table.append(parser.curr_row)
     if verbose:
-        print(tabulate(table))
-        print('Generating report...')
+        handler(tabulate(table))
+        handler('Generating report...')
     generate(parser1.table, table, parser1.station_number, output)
     if verbose:
-        print('Report generated.')
+        handler('Report generated.')
 
-if __name__ == '__main__':
+def main():
     input_parser = argparse.ArgumentParser(
         description="""""",
         epilog="""\
@@ -213,5 +213,7 @@ if __name__ == '__main__':
             output = None
         else:
             output = arguments.output
-        process(link, output, arguments.verbose)
-        
+        process(link, output, verbose=arguments.verbose)
+
+if __name__ == '__main__':
+    main()
