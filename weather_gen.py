@@ -36,7 +36,7 @@ def parse_link(text):
     return re.fullmatch('/cgi-bin/decomet\?ind=\d\d\d\d\d&ano=\d\d\d\d&mes=\d\d&day=\d\d&hora=\d\d&min=\d\d&single=yes&lang=en', text)
 
 def parse_nw(text):
-    return re.fullmatch('[NW]{1,3}', text)
+    return re.fullmatch('[NWSECAL]{1,3}', text)
 
 class MyHTMLParser(HTMLParser):
     def __init__(self):
@@ -90,10 +90,13 @@ class MyHTMLParser(HTMLParser):
 
 def parse_height(text):
     return re.fullmatch('\d+\sto\s\d+\sm', text)
+
+def parse_height_2(text):
+    return re.match('\d+\sm', text)
     
 def parse_direction(text):
     # print(text)
-    return re.fullmatch('\d{1,3}°\s–\s\d{1,3}°', text)
+    return re.fullmatch('(\d{1,3}°\s–\s\d{1,3}°|Calm)', text)
 
 def parse_wind(text):
     return re.fullmatch('\d+\sm/s\s\(\d+\.\d+\sKm/h,\s\d+\.\d+\sKt\)', text)
@@ -113,7 +116,7 @@ class MyHTMLParser2(HTMLParser):
         pass
 
     def handle_data(self, data):
-        if parse_height(data) or parse_direction(data) or parse_wind(data):
+        if parse_height(data) or parse_direction(data) or parse_wind(data) or parse_height_2(data):
             self.curr_row.append(data)
         if parse_unknown(data):
             self.curr_row.append('Unknown')
@@ -134,6 +137,13 @@ def parse_cloud_base(text):
     else:
         return '100'
 
+def parse_wind_direction(text):
+    x = re.match('\d+', text)
+    if x:
+        return x.group()
+    else:
+        return None
+
 def generate(table1, table2, sn, output):
     data = header
     table1.reverse()
@@ -146,14 +156,15 @@ def generate(table1, table2, sn, output):
     for i in range(len(table1)):
         datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
         data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
+        wdir = parse_wind_direction(table2[i][2])
         data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
             float(re.match('\d+', table2[i][2]).group()),
-            float(re.match('\d+', table2[i][1]).group()),
+            float(wdir if wdir else (0 if not i else parse_wind_direction(table2[i-1][1]))),
             parse_cloud_base(table2[i][0]),
             table1[i][13],
-            float(table1[i][2]),
+            float(table1[i][2]) + 273.16,
             86,
-            float(table1[i][10]) + 273.1,
+            float(table1[i][10]),
             parse_precipitation(table1[i][11]))
     if output:
         with open(output, 'w') as f:
