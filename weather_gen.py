@@ -125,9 +125,17 @@ def parse_precipitation(text):
     else:
         return '0.0'
 
+def parse_cloud_base(text):
+    x = re.match('\d+', text)
+    if x:
+        return x.group()
+    else:
+        return '100'
+
 def generate(table1, table2, sn):
     data = header
     table1.reverse()
+    table2.reverse()
     startdate = datetime.datetime.strptime(table1[0][0]+"T"+table1[0][1],'%m/%d/%YT%H:%M')
     enddate = datetime.datetime.strptime(table1[-1][0]+"T"+table1[-1][1],'%m/%d/%YT%H:%M')
     data += '\n{:>6}  {}{:>4}{:>6}  {}{:>4}    5    1'.format(startdate.year, startdate.timetuple().tm_yday, startdate.hour, 
@@ -139,30 +147,35 @@ def generate(table1, table2, sn):
         data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
             float(re.match('\d+', table2[i][2]).group()),
             float(re.match('\d+', table2[i][1]).group()),
-            re.match('\d+', table2[i][0]).group(),
+            parse_cloud_base(table2[i][0]),
             table1[i][13],
             float(table1[i][2]),
             86,
-            float(table1[i][10]),
+            float(table1[i][10]) + 273.1,
             parse_precipitation(table1[i][11]))
     with open('test.dat', 'w') as f:
         f.write(data)
 
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
+print('Start main page processing...')
 r = requests.get(link)
 t = r.text
 parser1 = MyHTMLParser()
 parser1.feed(t)
 print(tabulate(parser1.table))
-
+print('Start link processing...')
 table = []
+counter = 1
 for link in parser1.links:
+    print('Processing link {}/{} ...'.format(counter, len(parser1.links)))
+    counter += 1
     link = 'https://www.ogimet.com' + link
     r = requests.get(link)
     parser = MyHTMLParser2()
     parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
     table.append(parser.curr_row)
 print(tabulate(table))
-
+print('Generating report...')
 generate(parser1.table, table, parser1.station_number)
+print('Report generated.')
