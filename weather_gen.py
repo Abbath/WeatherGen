@@ -3,6 +3,8 @@ from html.parser import HTMLParser
 import re
 from tabulate import tabulate
 import datetime
+import sys
+import argparse
 
 def parse_float(text):
     try:
@@ -132,7 +134,7 @@ def parse_cloud_base(text):
     else:
         return '100'
 
-def generate(table1, table2, sn):
+def generate(table1, table2, sn, output):
     data = header
     table1.reverse()
     table2.reverse()
@@ -153,29 +155,63 @@ def generate(table1, table2, sn):
             86,
             float(table1[i][10]) + 273.1,
             parse_precipitation(table1[i][11]))
-    with open('test.dat', 'w') as f:
-        f.write(data)
+    if output:
+        with open(output, 'w') as f:
+            f.write(data)
+    else:
+        print(data)
 
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
-print('Start main page processing...')
-r = requests.get(link)
-t = r.text
-parser1 = MyHTMLParser()
-parser1.feed(t)
-print(tabulate(parser1.table))
-print('Start link processing...')
-table = []
-counter = 1
-for link in parser1.links:
-    print('Processing link {}/{} ...'.format(counter, len(parser1.links)))
-    counter += 1
-    link = 'https://www.ogimet.com' + link
+def process(link, output, verbose=False):
+    if verbose:
+        print('Start main page processing...')
     r = requests.get(link)
-    parser = MyHTMLParser2()
-    parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
-    table.append(parser.curr_row)
-print(tabulate(table))
-print('Generating report...')
-generate(parser1.table, table, parser1.station_number)
-print('Report generated.')
+    t = r.text
+    parser1 = MyHTMLParser()
+    parser1.feed(t)
+    if verbose:
+        print(tabulate(parser1.table))
+        print('Start link processing...')
+    table = []
+    counter = 1
+    for link in parser1.links:
+        if verbose:
+            print('Processing link {}/{} ...'.format(counter, len(parser1.links)))
+        counter += 1
+        link = 'https://www.ogimet.com' + link
+        r = requests.get(link)
+        parser = MyHTMLParser2()
+        parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
+        table.append(parser.curr_row)
+    if verbose:
+        print(tabulate(table))
+        print('Generating report...')
+    generate(parser1.table, table, parser1.station_number, output)
+    if verbose:
+        print('Report generated.')
+
+if __name__ == '__main__':
+    input_parser = argparse.ArgumentParser(
+        description="""""",
+        epilog="""\
+        In case of any questions, feel free to write: pitongogi@gmail.com
+        """
+    )
+
+    input_parser.add_argument("-i", "--input", help="Input link", action="store")
+    input_parser.add_argument("-o", "--output", help="Output file", action="store")
+    input_parser.add_argument("-v", "--verbose", help="VErbose output", action="store_true")
+
+    arguments = input_parser.parse_args(sys.argv[1:])
+
+    if isinstance(arguments.input, type(None)):
+        link = input('Enter link: ')
+    else:
+        link = arguments.input
+        if isinstance(arguments.output, type(None)):
+            output = None
+        else:
+            output = arguments.output
+        process(link, output, arguments.verbose)
+        
