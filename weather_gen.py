@@ -164,7 +164,7 @@ def generate(table1, table2, sn, output):
             table1[i][13],
             float(table1[i][2]) + 273.16,
             86,
-            float(table1[i][10]),
+            float(table1[i][9]),
             parse_precipitation(table1[i][11]))
     if output:
         with open(output, 'w') as f:
