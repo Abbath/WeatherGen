@@ -175,9 +175,9 @@ def process(link, output, handler=print, verbose=False):
         handler('Start link processing...')
     table = []
     counter = 1
-    for link in parser1.links:
+    for link in parser1.links[::2]:
         if verbose:
-            handler('Processing link {}/{} ...'.format(counter, len(parser1.links)))
+            handler('Processing link {}/{} ...'.format(counter, len(parser1.links[::2])))
         counter += 1
         link = 'https://www.ogimet.com' + link
         r = requests.get(link)
