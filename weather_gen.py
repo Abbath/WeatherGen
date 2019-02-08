@@ -2,10 +2,18 @@ import requests
 from html.parser import HTMLParser
 import re
 from tabulate import tabulate
+import datetime
 
 def parse_float(text):
     try:
         float(text)
+        return True
+    except:
+        return False
+
+def parse_int(text):
+    try:
+        int(text)
         return True
     except:
         return False
@@ -25,6 +33,9 @@ def parse_filler(text):
 def parse_link(text):
     return re.fullmatch('/cgi-bin/decomet\?ind=\d\d\d\d\d&ano=\d\d\d\d&mes=\d\d&day=\d\d&hora=\d\d&min=\d\d&single=yes&lang=en', text)
 
+def parse_nw(text):
+    return re.fullmatch('[NW]{1,3}', text)
+
 class MyHTMLParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -35,6 +46,7 @@ class MyHTMLParser(HTMLParser):
         self.headers = []
         self.headers_found = False
         self.links = []
+        self.station_number = -1
     def handle_starttag(self, tag, attrs):
         if tag == "td":
             self.td_found = True
@@ -49,17 +61,19 @@ class MyHTMLParser(HTMLParser):
             self.td_found = False
 
     def handle_data(self, data):
-        if self.td_found and (parse_float(data) or parse_date(data) or parse_time(data) or parse_crap(data) or parse_filler(data)):
-            if data == 'Date':
-                self.headers_found = True
-                self.headers.append(data)
-
+        if self.td_found and (parse_float(data) 
+            or parse_date(data) 
+            or parse_time(data) 
+            or parse_crap(data) 
+            or parse_filler(data)
+            or parse_nw(data)):
             if parse_date(data):
                 if self.curr_row:
                     self.table.append(self.curr_row)
                 self.curr_row = [data]
             elif not self.curr_row:
-                pass
+                if parse_int(data) and self.station_number == -1:
+                    self.station_number = int(data)
             else:
                 if parse_crap(data):
                     if self.crap_found:
@@ -102,19 +116,53 @@ class MyHTMLParser2(HTMLParser):
         if parse_unknown(data):
             self.curr_row.append('Unknown')
 
+header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
+
+def parse_precipitation(text):
+    x = re.match('\d+\.\d+', text)
+    if x:
+        return x.group()
+    else:
+        return '0.0'
+
+def generate(table1, table2, sn):
+    data = header
+    table1.reverse()
+    startdate = datetime.datetime.strptime(table1[0][0]+"T"+table1[0][1],'%m/%d/%YT%H:%M')
+    enddate = datetime.datetime.strptime(table1[-1][0]+"T"+table1[-1][1],'%m/%d/%YT%H:%M')
+    data += '\n{:>6}  {}{:>4}{:>6}  {}{:>4}    5    1'.format(startdate.year, startdate.timetuple().tm_yday, startdate.hour, 
+    enddate.year, enddate.timetuple().tm_yday, enddate.hour)
+    data += '\n   {}'.format(sn)
+    for i in range(len(table1)):
+        datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
+        data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
+        data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
+            float(re.match('\d+', table2[i][2]).group()),
+            float(re.match('\d+', table2[i][1]).group()),
+            re.match('\d+', table2[i][0]).group(),
+            table1[i][13],
+            float(table1[i][2]),
+            86,
+            float(table1[i][10]),
+            parse_precipitation(table1[i][11]))
+    with open('test.dat', 'w') as f:
+        f.write(data)
+
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
 r = requests.get(link)
 t = r.text
-parser = MyHTMLParser()
-parser.feed(t)
-print(tabulate(parser.table))
+parser1 = MyHTMLParser()
+parser1.feed(t)
+print(tabulate(parser1.table))
 
 table = []
-for link in parser.links:
+for link in parser1.links:
     link = 'https://www.ogimet.com' + link
     r = requests.get(link)
     parser = MyHTMLParser2()
     parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
     table.append(parser.curr_row)
 print(tabulate(table))
+
+generate(parser1.table, table, parser1.station_number)
