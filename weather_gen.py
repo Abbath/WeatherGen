@@ -156,7 +156,7 @@ def generate(table1, table2, sn, output):
     for i in range(len(table1)):
         datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
         data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
-        wdir = parse_wind_direction(table2[i][2])
+        wdir = parse_wind_direction(table2[i][1])
         data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
             float(re.match('\d+', table2[i][2]).group()),
             float(wdir if wdir else (0 if not i else parse_wind_direction(table2[i-1][1]))),
