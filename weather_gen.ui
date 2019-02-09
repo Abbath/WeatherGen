@@ -22,7 +22,17 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0" colspan="3">
+    <item row="1" column="1">
+     <widget class="QLineEdit" name="output"/>
+    </item>
+    <item row="1" column="2">
+     <widget class="QPushButton" name="select">
+      <property name="text">
+       <string>Select</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="3">
      <widget class="QPushButton" name="generate">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
@@ -35,9 +45,6 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="1">
-     <widget class="QLineEdit" name="output"/>
-    </item>
     <item row="1" column="0">
      <widget class="QLabel" name="label_2">
       <property name="text">
@@ -48,15 +55,25 @@
     <item row="0" column="1" colspan="2">
      <widget class="QLineEdit" name="link"/>
     </item>
-    <item row="1" column="2">
-     <widget class="QPushButton" name="select">
+    <item row="4" column="0" colspan="3">
+     <widget class="QPlainTextEdit" name="log"/>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="select1">
       <property name="text">
        <string>Select</string>
       </property>
      </widget>
     </item>
-    <item row="3" column="0" colspan="3">
-     <widget class="QPlainTextEdit" name="log"/>
+    <item row="2" column="1">
+     <widget class="QLineEdit" name="dat"/>
+    </item>
+    <item row="2" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="text">
+       <string>Dat</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -66,7 +83,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>32</height>
+     <height>28</height>
     </rect>
    </property>
   </widget>

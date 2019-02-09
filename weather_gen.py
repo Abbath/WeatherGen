@@ -127,12 +127,12 @@ header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
 humidities = {}
 first = True
 
-def parse_dat(dt):
+def parse_dat(dt, filename):
     global first
     global humidities
     if first:
         first = False
-        f = open('d.dat', 'r')
+        f = open(filename, 'r')
         r = csv.reader(f)
         for row in r:
             date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M")
@@ -160,7 +160,7 @@ def parse_wind_direction(text):
     else:
         return None
 
-def generate(table1, table2, sn, output):
+def generate(table1, table2, sn, output, dat):
     data = header
     table1.reverse()
     table2.reverse()
@@ -179,7 +179,7 @@ def generate(table1, table2, sn, output):
             parse_cloud_base(table2[i][0]),
             table1[i][13],
             float(table1[i][2]) + 273.16,
-            parse_dat(datet),
+            parse_dat(datet, dat),
             float(table1[i][9]),
             parse_precipitation(table1[i][11]))
     if output:
@@ -190,7 +190,7 @@ def generate(table1, table2, sn, output):
 
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
-def process(link, output, handler=print, verbose=False):
+def process(link, output, dat, handler=print, verbose=False):
     if verbose:
         handler('Start main page processing...')
     r = requests.get(link)
@@ -214,7 +214,7 @@ def process(link, output, handler=print, verbose=False):
     if verbose:
         handler(tabulate(table))
         handler('Generating report...')
-    generate(parser1.table, table, parser1.station_number, output)
+    generate(parser1.table, table, parser1.station_number, output, dat)
     if verbose:
         handler('Report generated.')
 
@@ -228,6 +228,7 @@ def main():
 
     input_parser.add_argument("-i", "--input", help="Input link", action="store")
     input_parser.add_argument("-o", "--output", help="Output file", action="store")
+    input_parser.add_argument("-d", "--dat", help="Dat file", action="store")
     input_parser.add_argument("-v", "--verbose", help="VErbose output", action="store_true")
 
     arguments = input_parser.parse_args(sys.argv[1:])
@@ -236,11 +237,18 @@ def main():
         link = input('Enter link: ')
     else:
         link = arguments.input
-        if isinstance(arguments.output, type(None)):
-            output = None
-        else:
-            output = arguments.output
-        process(link, output, verbose=arguments.verbose)
+    
+    if isinstance(arguments.output, type(None)):
+        output = None
+    else:
+        output = arguments.output
+
+    if isinstance(arguments.dat, type(None)):
+        dat = input('Enter dat: ')
+    else:
+        dat = arguments.dat
+
+    process(link, output, dat, verbose=arguments.verbose)
 
 if __name__ == '__main__':
     main()

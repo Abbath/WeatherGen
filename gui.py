@@ -16,6 +16,7 @@ class WeatherGen(QMainWindow):
         self.ui.setupUi(self)
 
         self.ui.select.clicked.connect(self.select)
+        self.ui.select1.clicked.connect(self.select1)
         self.ui.generate.clicked.connect(self.generate)
         self.logg.connect(self.trueLog, Qt.QueuedConnection)
 
@@ -25,14 +26,20 @@ class WeatherGen(QMainWindow):
         filename, _ = QFileDialog.getSaveFileName(self, "Save .dat file", "", "DAT files (*.dat)")
         if filename:
             self.ui.output.setText(filename)
+        
+    def select1(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Open .dat file", "", "DAT files (*.dat)")
+        if filename:
+            self.ui.dat.setText(filename)
 
     def generate(self):
         if not self.running:
             link = self.ui.link.text()
             output = self.ui.output.text()
-            if link and output:
+            dat = self.ui.dat.text()
+            if link and output and dat:
                 self.running = True
-                t = threading.Thread(target=process, args=[link, output, self.log, True])
+                t = threading.Thread(target=process, args=[link, output, dat, self.log, True])
                 t.start()
 
     def log(self, text):
