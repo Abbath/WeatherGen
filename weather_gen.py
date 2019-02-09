@@ -5,6 +5,7 @@ from tabulate import tabulate
 import datetime
 import sys
 import argparse
+import csv
 
 def parse_float(text):
     try:
@@ -123,6 +124,14 @@ class MyHTMLParser2(HTMLParser):
 
 header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
 
+def parse_dat(dt):
+    f = open('d.dat', 'r')
+    r = csv.reader(f)
+    for row in r:
+        date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M")
+        if date == dt:
+            return float(row[1])
+
 def parse_precipitation(text):
     x = re.match('\d+\.\d+', text)
     if x:
@@ -163,7 +172,7 @@ def generate(table1, table2, sn, output):
             parse_cloud_base(table2[i][0]),
             table1[i][13],
             float(table1[i][2]) + 273.16,
-            86,
+            parse_dat(datet),
             float(table1[i][9]),
             parse_precipitation(table1[i][11]))
     if output:
