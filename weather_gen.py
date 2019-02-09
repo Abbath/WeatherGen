@@ -159,7 +159,7 @@ def generate(table1, table2, sn, output):
         wdir = parse_wind_direction(table2[i][1])
         data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
             float(re.match('\d+', table2[i][2]).group()),
-            float(wdir if wdir else (0 if not i else parse_wind_direction(table2[i-1][1]))),
+            float(wdir if wdir else 0),
             parse_cloud_base(table2[i][0]),
             table1[i][13],
             float(table1[i][2]) + 273.16,
