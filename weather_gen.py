@@ -124,13 +124,20 @@ class MyHTMLParser2(HTMLParser):
 
 header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
 
+humidities = {}
+first = True
+
 def parse_dat(dt):
-    f = open('d.dat', 'r')
-    r = csv.reader(f)
-    for row in r:
-        date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M")
-        if date == dt:
-            return float(row[1])
+    global first
+    global humidities
+    if first:
+        first = False
+        f = open('d.dat', 'r')
+        r = csv.reader(f)
+        for row in r:
+            date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M")
+            humidities[date] = row[1]
+    return float(humidities[dt])
 
 def parse_precipitation(text):
     x = re.match('\d+\.\d+', text)
@@ -166,7 +173,7 @@ def generate(table1, table2, sn, output):
         datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
         data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
         wdir = parse_wind_direction(table2[i][1])
-        data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}   {}{:9.3f}    {}'.format(
+        data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}{:5.0f}{:9.3f}    {}'.format(
             float(re.match('\d+', table2[i][2]).group()),
             float(wdir if wdir else 0),
             parse_cloud_base(table2[i][0]),
