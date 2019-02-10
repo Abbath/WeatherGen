@@ -270,7 +270,7 @@ def generate2(tables, sn, output):
             data += ('\n' if counter == 4 else '')+'{:9.1f}/{:>5}/{:5.1f}/{:3}/{:3}'.format(
                 float(row[0]), 
                 row[1]+'.',
-                float(row[2]),
+                float(row[2])+273.16,
                 int(row[3]),
                 int(row[4]))
             if counter == 4:
@@ -283,7 +283,7 @@ def generate2(tables, sn, output):
         print(data)
 
 def process(link, output, dat, handler=print, verbose=False):
-    locale.setlocale(locale.LC_TIME, "en_US")
+    # locale.setlocale(locale.LC_TIME, "en-US")
     if diff_link(link) == 2:
         if verbose:
             handler('Start page processing...')
@@ -363,5 +363,4 @@ def main():
     process(link, output, dat, verbose=arguments.verbose)
 
 if __name__ == '__main__':
-    locale.setlocale(locale.LC_TIME, "en_US")
     main()
