@@ -6,6 +6,8 @@ import datetime
 import sys
 import argparse
 import csv
+from io import StringIO
+import locale
 
 def parse_float(text):
     try:
@@ -38,6 +40,14 @@ def parse_link(text):
 
 def parse_nw(text):
     return re.fullmatch('[NWSECAL]{1,3}', text)
+
+def diff_link(link):
+    if re.findall("weather\.uwyo\.edu", link):
+        return 2
+    elif re.findall("www\.ogimet\.com", link):
+        return 1
+    else:
+        return 0
 
 class MyHTMLParser(HTMLParser):
     def __init__(self):
@@ -122,6 +132,56 @@ class MyHTMLParser2(HTMLParser):
         if parse_unknown(data):
             self.curr_row.append('Unknown')
 
+def parse_day(text):
+    x = re.findall('\d\dZ \d\d \w\w\w \d\d\d\d', text)
+    date = datetime.datetime.strptime(x[0], '%HZ %d %b %Y')
+    return date
+
+def parse_sn(text):
+    x = re.match('\d\d\d\d\d', text).group()
+    return int(x)
+
+class MyHTMLParser3(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.h2_found = False
+        self.h2_inside = False
+        self.pre_found = False
+        self.table = []
+        self.tables = []
+        self.curdate = ''
+        self.sn = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'h2':
+            self.h2_found = True
+            self.h2_inside = True
+        elif tag == 'h3':
+            self.h2_found = False
+        elif tag == 'pre':
+            self.pre_found = True
+
+    def handle_endtag(self, tag):
+        if tag == 'pre':
+            self.pre_found = False
+        elif tag == 'h2':
+            self.h2_inside = False
+
+    def handle_data(self, data):
+        if self.h2_inside:
+            self.curdate = parse_day(data)
+            self.sn = parse_sn(data)
+        elif self.pre_found and self.h2_found:
+            x = '\n'.join(data.split('\n')[6:-1])
+            f = StringIO(x)
+            r = csv.reader(f, delimiter=' ', skipinitialspace=True)
+            self.table = []
+            for row in r:
+                if float(row[0]) >= 500:
+                    self.table.append(row[0:3]+row[6:8])
+            self.tables.append((self.curdate, self.table))
+            
+
 header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
 
 humidities = {}
@@ -190,7 +250,57 @@ def generate(table1, table2, sn, output, dat):
 
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
+header2 = """UP.DAT          2.0             Header structure with coordinate parameters                     
+   1
+Produced by READ62 Version: 5.5  Level: 030402                                  
+NONE    """
+
+def generate2(tables, sn, output):
+    data = header2
+    startdate = tables[0][0]
+    enddate = tables[-1][0]
+    data += '\n {:5}{:5}{:5}{:5}{:5}{:5}{:>5}    2    1'.format(startdate.year, startdate.timetuple().tm_yday, startdate.hour, enddate.year, enddate.timetuple().tm_yday, enddate.hour, tables[0][1][-1][0].rstrip("0"))
+    data += '\n     F    F    F    F'
+    for t in tables:
+        date = t[0]
+        data += '\n   6201{:>10}{:7}{:2}{:2}{:2}     12                                4\n'.format(sn, date.year, date.month, date.day, date.hour)
+        table = t[1]
+        counter = 0
+        for row in table:
+            data += ('\n' if counter == 4 else '')+'{:9.1f}/{:>5}/{:5.1f}/{:3}/{:3}'.format(
+                float(row[0]), 
+                row[1]+'.',
+                float(row[2]),
+                int(row[3]),
+                int(row[4]))
+            if counter == 4:
+                counter = 0
+            counter += 1           
+    if output:
+        with open(output, 'w') as f:
+            f.write(data)
+    else:
+        print(data)
+
 def process(link, output, dat, handler=print, verbose=False):
+    locale.setlocale(locale.LC_TIME, "en_US")
+    if diff_link(link) == 2:
+        if verbose:
+            handler('Start page processing...')
+        r = requests.get(link)
+        t = r.text
+        parser = MyHTMLParser3()
+        parser.feed(t)
+        if verbose:
+            for table in parser.tables:
+                handler(str(table[0]))
+                handler(tabulate(table[1]))
+                handler('Generating report...')
+        generate2(parser.tables, parser.sn, output)
+        if verbose:
+            handler('Report generated.')
+        return
+
     if verbose:
         handler('Start main page processing...')
     r = requests.get(link)
@@ -243,7 +353,9 @@ def main():
     else:
         output = arguments.output
 
-    if isinstance(arguments.dat, type(None)):
+    if diff_link(link) == 2:
+        dat = ''
+    elif isinstance(arguments.dat, type(None)):
         dat = input('Enter dat: ')
     else:
         dat = arguments.dat
@@ -251,4 +363,5 @@ def main():
     process(link, output, dat, verbose=arguments.verbose)
 
 if __name__ == '__main__':
+    locale.setlocale(locale.LC_TIME, "en_US")
     main()

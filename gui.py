@@ -1,11 +1,12 @@
 from PyQt5.QtWidgets import QMainWindow, QApplication, QFileDialog
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QLocale
 
 from ui_weather_gen import Ui_WeatherGen
-from weather_gen import process
+from weather_gen import process, diff_link
 
 import sys
 import threading
+import locale
 
 class WeatherGen(QMainWindow):
     logg = pyqtSignal(str)
@@ -21,6 +22,7 @@ class WeatherGen(QMainWindow):
         self.logg.connect(self.trueLog, Qt.QueuedConnection)
 
         self.running = False
+        print(QLocale().nativeCountryName())
 
     def select(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save .dat file", "", "DAT files (*.dat)")
@@ -37,7 +39,7 @@ class WeatherGen(QMainWindow):
             link = self.ui.link.text()
             output = self.ui.output.text()
             dat = self.ui.dat.text()
-            if link and output and dat:
+            if link and output and (dat or diff_link(link) == 2):
                 self.running = True
                 t = threading.Thread(target=process, args=[link, output, dat, self.log, True])
                 t.start()
@@ -58,5 +60,6 @@ def main():
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
+    locale.setlocale(locale.LC_TIME, "en_US")
     main()
 
