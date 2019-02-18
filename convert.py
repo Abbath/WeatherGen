@@ -86,7 +86,7 @@ def main2(args):
     counter1 = 0
     res += " 1.0000  - TERRAIN heights - HTFAC (Conversion to meters)\n"
     for x in table[1]:
-        if counter1 == len(table[1])-1:
+        if counter1 == len(table[1])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
@@ -99,7 +99,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded z0 field\n"
     for x in table[2]:
-        if counter1 == len(table[2])-1:
+        if counter1 == len(table[2])-1 or counter == 60:
             res += '{:7.4f}'.format(x)
         else:
             res += '{:7.4f},'.format(x)
@@ -112,7 +112,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded albedo field\n"
     for x in table[3]:
-        if counter1 == len(table[3])-1:
+        if counter1 == len(table[3])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
@@ -125,7 +125,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded Bowen ratio field\n"
     for x in table[4]:
-        if counter1 == len(table[4])-1:
+        if counter1 == len(table[4])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
@@ -138,7 +138,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded soil heat flux parameters\n"
     for x in table[5]:
-        if counter1 == len(table[5])-1:
+        if counter1 == len(table[5])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
@@ -151,7 +151,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded anthropogenic heat flux field\n"
     for x in table[6]:
-        if counter1 == len(table[6])-1:
+        if counter1 == len(table[6])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
@@ -164,7 +164,7 @@ def main2(args):
     counter1 = 0
     res += " 2    - gridded leaf area index field\n"
     for x in table[7]:
-        if counter1 == len(table[7])-1:
+        if counter1 == len(table[7])-1 or counter == 60:
             res += '{:7.2f}'.format(x)
         else:
             res += '{:7.2f},'.format(x)
