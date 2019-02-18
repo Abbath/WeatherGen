@@ -36,7 +36,7 @@ def main(args):
     counter = 0
     for row in ws.rows:
         v = row[1].value
-        if isinstance(v, float):
+        if isinstance(v, float) or isinstance(v, int):
             res += '{:8.1f}'.format(v)
             counter += 1
             if counter == 61:
