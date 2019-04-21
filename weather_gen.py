@@ -115,6 +115,44 @@ def parse_wind(text):
 def parse_unknown(text):
     return re.fullmatch('Unknown cloud base, or cloud base below and cloud top above the station level', text)
 
+def parse_imgs(text):
+    if 'sol' in text:
+        return 0
+    elif 'cubierto_noche' in text:
+        return 1
+    elif 'cubierto' in text:
+        return 2
+    elif 'lluvia_noche' in text:
+        return 3
+    elif 'lluvia' in text:
+        return 4
+    elif 'llovizna_noche' in text:
+        return 5
+    elif 'llovizna' in text:
+        return 6
+    elif 'lunanub' in text:
+        return 7
+    elif 'luna' in text:
+        return 8
+    elif 'nuboso' in text:
+        return 9
+    elif 'nieve_noche' in text:
+        return 10
+    elif 'nieve' in text:
+        return 11
+    elif 'humo' in text:
+        return 12
+    elif 'bruma_noche' in text:
+        return 13
+    elif 'bruma' in text:
+        return 14
+    elif 'niebla_noche' in text:
+        return 15
+    elif 'niebla' in text:
+        return 16
+    else:
+        return -1
+
 class MyHTMLParser2(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -180,7 +218,96 @@ class MyHTMLParser3(HTMLParser):
                 if float(row[0]) >= 500:
                     self.table.append(row[0:3]+row[6:8])
             self.tables.append((self.curdate, self.table))
-            
+
+class MyHTMLParser4(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.td_found = False
+        self.crap_found = False
+        self.table = []
+        self.curr_row = []
+        self.headers = []
+        self.headers_found = False
+        self.links = []
+        self.station_number = -1
+    def handle_starttag(self, tag, attrs):
+        if tag == "td":
+            self.td_found = True
+        if tag == 'a':
+            a = dict(attrs)
+            ref = a['href']
+            if parse_link(ref):
+                self.links.append(ref)
+        if tag == 'img':
+            img = dict(attrs)
+            ref = img['src']
+            self.curr_row.append(parse_imgs(ref))
+
+    def handle_endtag(self, tag):
+        if tag == "td":
+            self.td_found = False
+
+    def handle_data(self, data):
+        if self.td_found and (parse_float(data) 
+            or parse_date(data) 
+            or parse_time(data) 
+            or parse_crap(data) 
+            or parse_filler(data)
+            or parse_nw(data)):
+            if parse_date(data):
+                if self.curr_row:
+                    self.table.append(self.curr_row[:18])
+                self.curr_row = [data]
+            elif not self.curr_row:
+                if parse_int(data) and self.station_number == -1:
+                    self.station_number = int(data)
+            else:
+                if parse_crap(data):
+                    if self.crap_found:
+                        self.curr_row[-1] += '\n' + data
+                        self.crap_found = False
+                    else:
+                        self.crap_found = True
+                        self.curr_row.append(data)
+                else:
+                    self.crap_found = False
+                    self.curr_row.append(data)            
+
+def parse_dew(text):
+    return 'Dew' in text
+
+def parse_celsius(text):
+    x = text.split()
+    if len(x) < 2:
+        return False
+    num = x[0]
+    c = x[1]
+    if c != 'C':
+        return False
+    return float(num)
+
+class MyHTMLParser5(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.curr_row = []
+        self.dew = False
+  
+    def handle_starttag(self, tag, attrs):
+        pass
+
+    def handle_endtag(self, tag):
+        pass
+
+    def handle_data(self, data):
+        if self.dew and parse_celsius(data):
+            self.curr_row.append(parse_celsius(data))
+            self.dew = False
+        if parse_dew(data):
+            self.dew = True
+        if parse_height(data) or parse_direction(data) or parse_wind(data) or parse_height_2(data):
+            self.curr_row.append(data)
+        if parse_unknown(data):
+            self.curr_row.append('Unknown')
 
 header = "Produced by METEREOLOGIA Version: 5.3 Level: 0.704\nNONE"
 
@@ -282,7 +409,7 @@ def generate2(tables, sn, output):
     else:
         print(data)
 
-def process(link, output, dat, handler=print, verbose=False):
+def process(link, output, dat, handler=print, verbose=False, second=False):
     # locale.setlocale(locale.LC_TIME, "en-US")
     if diff_link(link) == 2:
         if verbose:
@@ -305,7 +432,7 @@ def process(link, output, dat, handler=print, verbose=False):
         handler('Start main page processing...')
     r = requests.get(link)
     t = r.text
-    parser1 = MyHTMLParser()
+    parser1 = MyHTMLParser4() if second else MyHTMLParser()
     parser1.feed(t)
     if verbose:
         handler(tabulate(parser1.table))
@@ -318,15 +445,57 @@ def process(link, output, dat, handler=print, verbose=False):
         counter += 1
         link = 'https://www.ogimet.com' + link
         r = requests.get(link)
-        parser = MyHTMLParser2()
+        parser = MyHTMLParser5() if second else MyHTMLParser2()
         parser.feed(r.text.encode(encoding=r.encoding).decode(encoding='utf-8'))
         table.append(parser.curr_row)
     if verbose:
         handler(tabulate(table))
         handler('Generating report...')
-    generate(parser1.table, table, parser1.station_number, output, dat)
+    if second:
+        generate3(parser1.table, table, output, dat)
+    else:
+        generate(parser1.table, table, parser1.station_number, output, dat) 
     if verbose:
         handler('Report generated.')
+
+header3 = """	Local				UTC	(GMT)		Temp	DewP	RH	P, stn	P, sea	Cloud	CloudH	Weather,	Code	WD	WS	Precipitation
+Year	Month	Day	Time	Year	Month	Day	Time	C	C	%	hPa	hPa	0-10	M	W	WW	degree	m/s	mm"""
+
+def parse_clouds(num):
+    if num in [3,4]:
+        return 0.1
+    elif num in [5,6]:
+        return 0.05
+    else:
+        return 0
+
+def generate3(table1, table2, output, dat):
+    data = header3
+    table1.reverse()
+    table2.reverse()
+    for i in range(len(table1)-1):
+        datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
+        data += '\n{}{:>4}{:>4} '.format(datet.year, datet.timetuple().tm_yday, datet.hour)
+        data += '{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour+0)
+        wdir = parse_wind_direction(table2[i][1])
+        data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(
+            float(table1[i][2]),
+            float(table2[i][3]),
+            parse_dat(datet, dat),
+            float(table1[i][9]),
+            float(table1[i][10]),
+            float(table1[i][13]),
+            float(parse_cloud_base(table2[i][0])),
+            0.0,
+            0.0,
+            float(wdir if wdir else 0),
+            float(re.match('\d+', table2[i][2]).group()),
+            parse_clouds(table1[i][17]))
+    if output:
+        with open(output, 'w') as f:
+            f.write(data)
+    else:
+        print(data)
 
 def main():
     input_parser = argparse.ArgumentParser(
@@ -340,6 +509,7 @@ def main():
     input_parser.add_argument("-o", "--output", help="Output file", action="store")
     input_parser.add_argument("-d", "--dat", help="Dat file", action="store")
     input_parser.add_argument("-v", "--verbose", help="VErbose output", action="store_true")
+    input_parser.add_argument("-s", "--second", help="Second version", action="store_true")
 
     arguments = input_parser.parse_args(sys.argv[1:])
 
@@ -360,7 +530,7 @@ def main():
     else:
         dat = arguments.dat
 
-    process(link, output, dat, verbose=arguments.verbose)
+    process(link, output, dat, verbose=arguments.verbose, second=arguments.second)
 
 if __name__ == '__main__':
     main()

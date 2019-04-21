@@ -22,7 +22,6 @@ class WeatherGen(QMainWindow):
         self.logg.connect(self.trueLog, Qt.QueuedConnection)
 
         self.running = False
-        print(QLocale().nativeCountryName())
 
     def select(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save .dat file", "", "DAT files (*.dat)")
@@ -41,7 +40,7 @@ class WeatherGen(QMainWindow):
             dat = self.ui.dat.text()
             if link and output and (dat or diff_link(link) == 2):
                 self.running = True
-                t = threading.Thread(target=process, args=[link, output, dat, self.log, True])
+                t = threading.Thread(target=process, args=[link, output, dat, self.log, True, self.ui.second.checkState()])
                 t.start()
 
     def log(self, text):
