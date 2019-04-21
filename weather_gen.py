@@ -475,8 +475,8 @@ def generate3(table1, table2, output, dat):
     table2.reverse()
     for i in range(len(table1)-1):
         datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
-        data += '\n{}{:>4}{:>4} '.format(datet.year, datet.timetuple().tm_yday, datet.hour)
-        data += '{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour+0)
+        data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
+        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour+0)
         wdir = parse_wind_direction(table2[i][1])
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(
             float(table1[i][2]),
