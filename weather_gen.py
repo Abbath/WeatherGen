@@ -509,9 +509,11 @@ class MyHTMLParser6(HTMLParser):
     def __init__(self):
         super().__init__()
         self.res = ""
+        self.h2 = False
   
     def handle_starttag(self, tag, attrs):
-        pass
+        if tag == 'h2':
+            self.h2 = True
 
     def handle_endtag(self, tag):
         pass
@@ -519,6 +521,9 @@ class MyHTMLParser6(HTMLParser):
     def handle_data(self, data):
         if data != '\n':
             self.res += data
+            if self.h2:
+                self.res += '\n'
+                self.h2 = False
 
 def main():
     input_parser = argparse.ArgumentParser(
