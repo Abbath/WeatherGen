@@ -40,7 +40,7 @@ class WeatherGen(QMainWindow):
             dat = self.ui.dat.text()
             if link and output and (dat or diff_link(link) == 2):
                 self.running = True
-                t = threading.Thread(target=process, args=[link, output, dat, self.log, True, self.ui.second.checkState()])
+                t = threading.Thread(target=process, args=[link, output, dat, self.log, True, self.ui.second.checkState(), self.ui.remtags.checkState()])
                 t.start()
 
     def log(self, text):

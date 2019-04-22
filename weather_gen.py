@@ -409,21 +409,29 @@ def generate2(tables, sn, output):
     else:
         print(data)
 
-def process(link, output, dat, handler=print, verbose=False, second=False):
+def process(link, output, dat, handler=print, verbose=False, second=False, remtags=False):
     # locale.setlocale(locale.LC_TIME, "en-US")
     if diff_link(link) == 2:
         if verbose:
             handler('Start page processing...')
         r = requests.get(link)
         t = r.text
-        parser = MyHTMLParser3()
-        parser.feed(t)
-        if verbose:
-            for table in parser.tables:
-                handler(str(table[0]))
-                handler(tabulate(table[1]))
-                handler('Generating report...')
-        generate2(parser.tables, parser.sn, output)
+        if remtags:
+            parser_a = MyHTMLParser6()
+            parser_a.feed(t)
+            if verbose:
+                handler('Removing tags...')
+            with open(output, 'w') as f:
+                f.write(parser_a.res)
+        else:
+            parser = MyHTMLParser3()
+            parser.feed(t)
+            if verbose:
+                for table in parser.tables:
+                    handler(str(table[0]))
+                    handler(tabulate(table[1]))
+                    handler('Generating report...')
+            generate2(parser.tables, parser.sn, output)
         if verbose:
             handler('Report generated.')
         return
@@ -497,6 +505,21 @@ def generate3(table1, table2, output, dat):
     else:
         print(data)
 
+class MyHTMLParser6(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.res = ""
+  
+    def handle_starttag(self, tag, attrs):
+        pass
+
+    def handle_endtag(self, tag):
+        pass
+
+    def handle_data(self, data):
+        if data != '\n':
+            self.res += data
+
 def main():
     input_parser = argparse.ArgumentParser(
         description="""""",
@@ -510,6 +533,7 @@ def main():
     input_parser.add_argument("-d", "--dat", help="Dat file", action="store")
     input_parser.add_argument("-v", "--verbose", help="VErbose output", action="store_true")
     input_parser.add_argument("-s", "--second", help="Second version", action="store_true")
+    input_parser.add_argument("-r", "--remtags", help="Remove tags", action="store_true")
 
     arguments = input_parser.parse_args(sys.argv[1:])
 
@@ -530,7 +554,7 @@ def main():
     else:
         dat = arguments.dat
 
-    process(link, output, dat, verbose=arguments.verbose, second=arguments.second)
+    process(link, output, dat, verbose=arguments.verbose, second=arguments.second, remtags=arguments.remtags)
 
 if __name__ == '__main__':
     main()
