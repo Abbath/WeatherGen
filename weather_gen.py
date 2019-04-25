@@ -412,7 +412,7 @@ def f(x, y):
     return s, c
 
 def generate_missing_rows(i, delta, datet, dates, stuff):
-    start = i - 4
+    start = max(0, i - 4)
     finish = i + 5
     a = stuff[start:finish+1, :]
     d = dates[start:finish+1]
