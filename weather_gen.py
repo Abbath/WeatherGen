@@ -157,14 +157,20 @@ class MyHTMLParser2(HTMLParser):
     def __init__(self):
         super().__init__()
         self.curr_row = []
+        self.pre = False
   
     def handle_starttag(self, tag, attrs):
-        pass
+        if tag == 'pre':
+            self.pre = True
 
     def handle_endtag(self, tag):
         pass
 
     def handle_data(self, data):
+        if self.pre:
+            six, _ = parse_magic_numbers(data)
+            self.curr_row.append(six)
+            self.pre = False
         if parse_height(data) or parse_direction(data) or parse_wind(data) or parse_height_2(data):
             self.curr_row.append(data)
         if parse_unknown(data):
@@ -286,20 +292,57 @@ def parse_celsius(text):
         return False
     return float(num)
 
+def parse_magic_numbers(text):
+    first_line = text.split('\n')[0]
+    x = re.findall('\s[56][\d|/]{4}', first_line)
+    y = re.findall('\s7[\d|/]{4}', first_line)
+    six = 0
+    if x:
+        x[-1] = x[-1][1:]
+        if x[-1][0] == '5':
+            pass
+        else:
+            try:
+                six_tmp = int(x[-1][1:3])
+                if six_tmp == 99:
+                    six = int(x[-1][3:4]) / 10
+                else:
+                    six = int(x[-1][1:4])
+            except ValueError:
+                six = 0
+    w1 = 0
+    ww = 0
+    if y:
+        y[-1] = y[-1][1:]
+        try:
+            w1 = int(y[-1][3:4])
+            ww = int(y[-1][1:3])
+        except ValueError:
+            ww = 0
+    return (six, (ww, w1))
+
 class MyHTMLParser5(HTMLParser):
     def __init__(self):
         super().__init__()
         self.curr_row = []
         self.dew = False
+        self.pre = False
   
     def handle_starttag(self, tag, attrs):
-        pass
+        if tag == 'pre':
+            self.pre = True
 
     def handle_endtag(self, tag):
         pass
 
     def handle_data(self, data):
-        if self.dew and parse_celsius(data):
+        if self.pre:
+            six, seven = parse_magic_numbers(data)
+            self.curr_row.append(six)
+            self.curr_row.append(seven[0])
+            self.curr_row.append(seven[1])
+            self.pre = False
+        if self.dew and isinstance(parse_celsius(data), float):
             self.curr_row.append(parse_celsius(data))
             self.dew = False
         if parse_dew(data):
@@ -359,16 +402,17 @@ def generate(table1, table2, sn, output, dat):
     for i in range(len(table1)):
         datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
         data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
-        wdir = parse_wind_direction(table2[i][1])
+        wdir = parse_wind_direction(table2[i][2])
         data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}{:5.0f}{:9.3f}    {}'.format(
-            float(re.match('\d+', table2[i][2]).group()),
+            float(re.match('\d+', table2[i][3]).group()),
             float(wdir if wdir else 0),
-            parse_cloud_base(table2[i][0]),
+            parse_cloud_base(table2[i][1]),
             table1[i][13],
             float(table1[i][2]) + 273.16,
             parse_dat(datet, dat),
             float(table1[i][9]),
-            parse_precipitation(table1[i][11]))
+            float(table2[i][0]))
+            # parse_precipitation(table1[i][11]))
     if output:
         with open(output, 'w') as f:
             f.write(data)
@@ -485,20 +529,21 @@ def generate3(table1, table2, output, dat):
         datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
         data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour+0)
-        wdir = parse_wind_direction(table2[i][1])
+        wdir = parse_wind_direction(table2[i][4])
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(
             float(table1[i][2]),
-            float(table2[i][3]),
+            float(table2[i][6]),
             parse_dat(datet, dat),
             float(table1[i][9]),
             float(table1[i][10]),
             float(table1[i][13]),
-            float(parse_cloud_base(table2[i][0])),
-            0.0,
-            0.0,
+            float(parse_cloud_base(table2[i][3])),
+            float(table2[i][2]),
+            float(table2[i][1]),
             float(wdir if wdir else 0),
-            float(re.match('\d+', table2[i][2]).group()),
-            parse_clouds(table1[i][17]))
+            float(re.match('\d+', table2[i][5]).group()),
+            float(table2[i][0]))
+            # parse_clouds(table1[i][17]))
     if output:
         with open(output, 'w') as f:
             f.write(data)
