@@ -8,6 +8,8 @@ import argparse
 import csv
 from io import StringIO
 import locale
+import numpy as np
+from scipy.stats import linregress
 
 def parse_float(text):
     try:
@@ -106,7 +108,6 @@ def parse_height_2(text):
     return re.match('\d+\sm', text)
     
 def parse_direction(text):
-    # print(text)
     return re.fullmatch('(\d{1,3}°\s–\s\d{1,3}°|Calm)', text)
 
 def parse_wind(text):
@@ -390,29 +391,81 @@ def parse_wind_direction(text):
     else:
         return None
 
+def generate_row(i, table1, table2, dat):
+    datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
+    wdir = parse_wind_direction(table2[i][2])
+    stuff = np.array([float(re.match('\d+', table2[i][3]).group()),
+        float(wdir if wdir else 0),
+        float(parse_cloud_base(table2[i][1])),
+        float(table1[i][13]),
+        float(table1[i][2]) + 273.16,
+        float(parse_dat(datet, dat)),
+        float(table1[i][9]),
+        float(table2[i][0])])
+    return datet, stuff
+
+def time_delta(d1, d2):
+    return int((d2 - d1).total_seconds() // 3600)
+
+def f(x, y):
+    s,c,_,_,_ = linregress(x, y)
+    return s, c
+
+def generate_missing_rows(i, delta, datet, dates, stuff):
+    start = i - 4
+    finish = i + 5
+    a = stuff[start:finish+1, :]
+    d = dates[start:finish+1]
+    d1 = d[0]
+    x = [0]
+    for dd in d[1:]:
+        x.append(time_delta(d1, dd))
+    missing = []
+    for i in range(delta-1):
+        missing.append( time_delta(d1, datet) + 1 + i)
+    x = np.array(x)
+    s, c  = np.apply_along_axis(lambda xx : f(x, xx), 0, a)
+    res = np.zeros((len(missing), stuff.shape[1]))
+    for i, m in enumerate(missing):
+        res[i, :] = s * m + c
+    resdates = []
+    for m in missing:
+        resdates.append(d1 + datetime.timedelta(hours=m))
+    return resdates, res
+
 def generate(table1, table2, sn, output, dat):
     data = header
     table1.reverse()
     table2.reverse()
+    all_shit = np.zeros((len(table1), 8))
     startdate = datetime.datetime.strptime(table1[0][0]+"T"+table1[0][1],'%m/%d/%YT%H:%M')
     enddate = datetime.datetime.strptime(table1[-1][0]+"T"+table1[-1][1],'%m/%d/%YT%H:%M')
     data += '\n{:>6}  {}{:>4}{:>6}  {}{:>4}    5    1'.format(startdate.year, startdate.timetuple().tm_yday, startdate.hour, 
     enddate.year, enddate.timetuple().tm_yday, enddate.hour)
     data += '\n   {}'.format(sn)
+    dates = []
     for i in range(len(table1)):
-        datet = datetime.datetime.strptime(table1[i][0]+"T"+table1[i][1],'%m/%d/%YT%H:%M')
+        datet, stuff = generate_row(i, table1, table2, dat)
+        dates.append(datet)
+        all_shit[i, :] = stuff
+
+    for i in range(len(table1)):
+        datet = dates[i]
+        stuff = all_shit[i,:]
+
         data += '\n{}{:>4}{:>4}'.format(datet.year, datet.timetuple().tm_yday, datet.hour)
-        wdir = parse_wind_direction(table2[i][2])
-        data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}{:5.0f}{:9.3f}    {}'.format(
-            float(re.match('\d+', table2[i][3]).group()),
-            float(wdir if wdir else 0),
-            parse_cloud_base(table2[i][1]),
-            table1[i][13],
-            float(table1[i][2]) + 273.16,
-            parse_dat(datet, dat),
-            float(table1[i][9]),
-            float(table2[i][0]))
-            # parse_precipitation(table1[i][11]))
+        data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}{:5.0f}{:9.3f}    {}'.format(*stuff)
+
+        if i < len(table1) - 1:
+            delta = time_delta(datet, dates[i+1])
+            if delta != 1:
+                dates1, all_shit1 = generate_missing_rows(i, delta, datet, dates, all_shit)
+                for i in range(delta-1):
+                    datet1 = dates1[i]
+                    stuff1 = all_shit1[i, :]
+                    data += '\n{}{:>4}{:>4}'.format(datet1.year, datet1.timetuple().tm_yday, datet1.hour)
+                    data += '\n{:9.3f}{:9.3f}    {}    {}{:9.3f}{:5.0f}{:9.3f}    {}'.format(*stuff1)
+
     if output:
         with open(output, 'w') as f:
             f.write(data)
@@ -521,29 +574,54 @@ def parse_clouds(num):
     else:
         return 0
 
+def generate_row3(i, table1, table2, dat):
+    datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
+    wdir = parse_wind_direction(table2[i][4])
+    stuff = np.array([
+        float(table1[i][2]),
+        float(table2[i][6]),
+        float(parse_dat(datet, dat)),
+        float(table1[i][9]),
+        float(table1[i][10]),
+        float(table1[i][13]),
+        float(parse_cloud_base(table2[i][3])),
+        float(table2[i][2]),
+        float(table2[i][1]),
+        float(wdir if wdir else 0),
+        float(re.match('\d+', table2[i][5]).group()),
+        float(table2[i][0])])
+    return datet, stuff
+
 def generate3(table1, table2, output, dat):
     data = header3
     table1.reverse()
     table2.reverse()
+    all_shit = np.zeros((len(table1), 12))
+    dates = []
     for i in range(len(table1)-1):
-        datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
+        datet, stuff = generate_row3(i, table1, table2, dat)
+        dates.append(datet)
+        all_shit[i, :] = stuff
+
+    for i in range(len(table1)-1):
+        datet = dates[i]
+        stuff = all_shit[i,:]
+
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
         data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour+0)
-        wdir = parse_wind_direction(table2[i][4])
-        data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(
-            float(table1[i][2]),
-            float(table2[i][6]),
-            parse_dat(datet, dat),
-            float(table1[i][9]),
-            float(table1[i][10]),
-            float(table1[i][13]),
-            float(parse_cloud_base(table2[i][3])),
-            float(table2[i][2]),
-            float(table2[i][1]),
-            float(wdir if wdir else 0),
-            float(re.match('\d+', table2[i][5]).group()),
-            float(table2[i][0]))
-            # parse_clouds(table1[i][17]))
+        data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff)
+            
+        if i < len(table1) - 2:
+            delta = time_delta(datet, dates[i+1])
+            if delta != 1:
+                dates1, all_shit1 = generate_missing_rows(i, delta, datet, dates, all_shit)
+                for i in range(delta-1):
+                    datet1 = dates1[i]
+                    stuff1 = all_shit1[i, :]
+                    data += '\n{}{:>4}{:>4}{:>4} '.format(datet1.year, datet1.month, datet1.day, datet1.hour)
+                    data += '{}{:>4}{:>4}{:>4}'.format(datet1.year, datet.month, datet1.day, datet1.hour+0)
+                    data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff1)
+
     if output:
         with open(output, 'w') as f:
             f.write(data)

@@ -22,6 +22,9 @@ class WeatherGen(QMainWindow):
         self.logg.connect(self.trueLog, Qt.QueuedConnection)
 
         self.running = False
+        # self.ui.link.setText("https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=1&ano=2017&mes=04&day=07&hora=00")
+        # self.ui.output.setText("azaza.dat")
+        # self.ui.dat.setText("d.dat")
 
     def select(self):
         filename, _ = QFileDialog.getSaveFileName(self, "Save .dat file", "", "DAT files (*.dat)")
