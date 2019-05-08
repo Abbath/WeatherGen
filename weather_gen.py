@@ -593,7 +593,7 @@ def process(link, output, dat, handler=print, verbose=False, second=False, remta
     if verbose:
         handler('Report generated.')
 
-header3 = """	Local				UTC	(GMT)		Temp	DewP	RH	P, stn	P, sea	Cloud	CloudH	Weather,	Code	WD	WS	Precipitation	Year	Month	Day	Time	Year	Month	Day	Time	C	C	%	hPa	hPa	0-10	M	W	WW	degree	m/s	mm"""
+header3 = """	Local			UTC	(GMT)	Date	Temp	DewP	RH	P, stn	P, sea	Cloud	CloudH	Weather,	Code	WD	WS	Precipitation	Year	Month	Day	Time	Year	Month	Day	Time	C	C	%	hPa	hPa	0-10	M	W	WW	degree	m/s	mm"""
 
 def parse_clouds(num):
     if num in [3,4]:
@@ -640,6 +640,7 @@ def generate3(table1, table2, output, dat):
 
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
         data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, (datet.hour + 2) % 24)
+        data += datet.strftime(" %d/%m/%Y ")
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff)
             
         if i < len(table1) - 2:
