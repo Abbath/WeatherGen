@@ -62,7 +62,14 @@ class MyHTMLParser(HTMLParser):
         self.headers_found = False
         self.links = []
         self.station_number = -1
+        self.table_first = False
+        self.table_second = False
     def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            if self.table_first:
+                self.table_second = True
+            else:
+                self.table_first = True
         if tag == "td":
             self.td_found = True
         if tag == 'a':
@@ -72,10 +79,16 @@ class MyHTMLParser(HTMLParser):
                 self.links.append(ref)
 
     def handle_endtag(self, tag):
+        if tag == "table":
+            if self.curr_row:
+                self.table.append(self.curr_row)
+                self.curr_row = []
         if tag == "td":
             self.td_found = False
 
     def handle_data(self, data):
+        if not self.table_second:
+            return
         if self.td_found and (parse_float(data) 
             or parse_date(data) 
             or parse_time(data) 
@@ -237,7 +250,15 @@ class MyHTMLParser4(HTMLParser):
         self.headers_found = False
         self.links = []
         self.station_number = -1
+        self.table_first = False
+        self.table_second = False
+        self.table_third = False
     def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            if self.table_first:
+                self.table_second = True
+            else:
+                self.table_first = True
         if tag == "td":
             self.td_found = True
         if tag == 'a':
@@ -251,10 +272,16 @@ class MyHTMLParser4(HTMLParser):
             self.curr_row.append(parse_imgs(ref))
 
     def handle_endtag(self, tag):
+        if tag == "table":
+            if self.curr_row:
+                self.table.append(self.curr_row[:18])
+                self.curr_row = []
         if tag == "td":
             self.td_found = False
 
     def handle_data(self, data):
+        if not self.table_second:
+            return
         if self.td_found and (parse_float(data) 
             or parse_date(data) 
             or parse_time(data) 
@@ -566,8 +593,7 @@ def process(link, output, dat, handler=print, verbose=False, second=False, remta
     if verbose:
         handler('Report generated.')
 
-header3 = """	Local				UTC	(GMT)		Temp	DewP	RH	P, stn	P, sea	Cloud	CloudH	Weather,	Code	WD	WS	Precipitation
-Year	Month	Day	Time	Year	Month	Day	Time	C	C	%	hPa	hPa	0-10	M	W	WW	degree	m/s	mm"""
+header3 = """	Local				UTC	(GMT)		Temp	DewP	RH	P, stn	P, sea	Cloud	CloudH	Weather,	Code	WD	WS	Precipitation	Year	Month	Day	Time	Year	Month	Day	Time	C	C	%	hPa	hPa	0-10	M	W	WW	degree	m/s	mm"""
 
 def parse_clouds(num):
     if num in [3,4]:
@@ -599,6 +625,8 @@ def generate3(table1, table2, output, dat):
     data = header3
     table1.reverse()
     table2.reverse()
+    print(tabulate(table1))
+    print(tabulate(table2))
     all_shit = np.zeros((len(table1), 12))
     dates = []
     for i in range(len(table1)-1):
@@ -611,7 +639,7 @@ def generate3(table1, table2, output, dat):
         stuff = all_shit[i,:]
 
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
-        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour + 2)
+        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, (datet.hour + 2) % 2)
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff)
             
         if i < len(table1) - 2:
@@ -622,7 +650,7 @@ def generate3(table1, table2, output, dat):
                     datet1 = dates1[i]
                     stuff1 = all_shit1[i, :]
                     data += '\n{}{:>4}{:>4}{:>4} '.format(datet1.year, datet1.month, datet1.day, datet1.hour)
-                    data += '{}{:>4}{:>4}{:>4}'.format(datet1.year, datet.month, datet1.day, datet1.hour+0)
+                    data += '{}{:>4}{:>4}{:>4}'.format(datet1.year, datet.month, datet1.day, (datet1.hour + 2) % 24)
                     data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff1)
 
     if output:
