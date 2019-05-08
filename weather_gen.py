@@ -639,7 +639,7 @@ def generate3(table1, table2, output, dat):
         stuff = all_shit[i,:]
 
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
-        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, (datet.hour + 2) % 2)
+        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, (datet.hour + 2) % 24)
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff)
             
         if i < len(table1) - 2:
