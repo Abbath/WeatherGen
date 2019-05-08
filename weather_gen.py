@@ -368,7 +368,10 @@ def parse_dat(dt, filename):
         for row in r:
             date = datetime.datetime.strptime(row[0], "%Y-%m-%d %H:%M")
             humidities[date] = row[1]
-    return float(humidities[dt])
+    if dt in humidities:
+        return float(humidities[dt])
+    else:
+        return 0.0
 
 def parse_precipitation(text):
     x = re.match('\d+\.\d+', text)
@@ -608,7 +611,7 @@ def generate3(table1, table2, output, dat):
         stuff = all_shit[i,:]
 
         data += '\n{}{:>4}{:>4}{:>4} '.format(datet.year, datet.month, datet.day, datet.hour)
-        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour+0)
+        data += '{}{:>4}{:>4}{:>4}'.format(datet.year, datet.month, datet.day, datet.hour + 2)
         data += '{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}{:9.3f}'.format(*stuff)
             
         if i < len(table1) - 2:
