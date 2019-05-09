@@ -32,7 +32,7 @@ def parse_time(text):
     return re.fullmatch('\d\d:\d\d', text)
 
 def parse_crap(text):
-    return re.fullmatch('([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?/\d{1,2}h){1,2}', text)
+    return re.fullmatch('(([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?|Tr)/\d{1,2}h){1,2}', text)
 
 def parse_filler(text):
     return re.fullmatch('-+', text)
@@ -606,6 +606,8 @@ def parse_clouds(num):
 def generate_row3(i, table1, table2, dat):
     datet = datetime.datetime.strptime(str(table1[i][0])+"T"+str(table1[i][1]),'%m/%d/%YT%H:%M')
     wdir = parse_wind_direction(table2[i][4])
+    if table1[i][13] == '-':
+        print('FAIL: {}'.format(datet))
     stuff = np.array([
         float(table1[i][2]),
         float(table2[i][6]),
@@ -625,8 +627,8 @@ def generate3(table1, table2, output, dat):
     data = header3
     table1.reverse()
     table2.reverse()
-    print(tabulate(table1))
-    print(tabulate(table2))
+    # print(tabulate(table1))
+    # print(tabulate(table2))
     all_shit = np.zeros((len(table1), 12))
     dates = []
     for i in range(len(table1)-1):
