@@ -239,6 +239,43 @@ class MyHTMLParser3(HTMLParser):
                     self.table.append(row[0:3]+row[6:8])
             self.tables.append((self.curdate, self.table))
 
+class MyHTMLParser7(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.h2_found = False
+        self.h2_inside = False
+        self.pre_found = False
+        self.table = []
+        self.tables = []
+        self.curdate = ''
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'h2':
+            self.h2_found = True
+            self.h2_inside = True
+        elif tag == 'h3':
+            self.h2_found = False
+        elif tag == 'pre':
+            self.pre_found = True
+
+    def handle_endtag(self, tag):
+        if tag == 'pre':
+            self.pre_found = False
+        elif tag == 'h2':
+            self.h2_inside = False
+
+    def handle_data(self, data):
+        if self.h2_inside:
+            self.curdate = parse_day(data)
+        elif self.pre_found and self.h2_found:
+            x = '\n'.join(data.split('\n')[5:-1])
+            f = StringIO(x)
+            r = csv.reader(f, delimiter=' ', skipinitialspace=True)
+            self.table = []
+            for row in r:
+                self.table.append(row)
+            self.tables.append((self.curdate, self.table))
+
 class MyHTMLParser4(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -502,6 +539,67 @@ def generate(table1, table2, sn, output, dat):
     else:
         print(data)
 
+def generate4(tables, output):
+    data = header4
+    for t in tables:
+        date = t[0]
+        table = t[1]
+        for row in table:
+            rowlen = len(row)
+            if rowlen < 11:
+                if rowlen == 4:
+                    data += '{:4}/{:02}/{:02} {:02}:00  {:6.1f}                                    {:5}  {:5}                  \n'.format(
+                        date.year, date.month, date.day, date.hour,
+                        float(row[0]), 
+                        int(row[1]),
+                        int(row[2]),
+                        )
+                elif rowlen == 9:
+                    data += '{:4}/{:02}/{:02} {:02}:00  {:6.1f}  {:5}  {:5.1f}  {:5.1f}  {:6}  {:4.2f}                {:4.1f}  {:4.1f}  {:4.1f}\n'.format(
+                        date.year, date.month, date.day, date.hour,
+                        float(row[0]), 
+                        int(row[1]),
+                        float(row[2]),
+                        float(row[3]),
+                        int(row[4]),
+                        float(row[5]),
+                        float(row[6]),
+                        float(row[7]),
+                        float(row[8])
+                        )
+                elif rowlen == 3:
+                    data += '{:4}/{:02}/{:02} {:02}:00  {:6.1f}  {:5}\n'.format(
+                        date.year, date.month, date.day, date.hour,
+                        float(row[0]), 
+                        int(row[1])
+                        )
+                continue
+            data += '{:4}/{:02}/{:02} {:02}:00  {:6.1f}  {:5}  {:5.1f}  {:5.1f}  {:6}  {:4.2f}  {:5}  {:5}  {:4.1f}  {:4.1f}  {:4.1f}\n'.format(
+                date.year, date.month, date.day, date.hour,
+                float(row[0]), 
+                int(row[1]),
+                float(row[2]),
+                float(row[3]),
+                int(row[4]),
+                float(row[5]),
+                int(row[6]),
+                int(row[7]),
+                float(row[8]),
+                float(row[9]),
+                float(row[10])
+                )        
+    if output:
+        with open(output, 'w') as f:
+            f.write(data)
+    else:
+        print(data)
+
+header4 = """---------------------------------------------------------------------------------------------
+Date                PRES   HGHT   TEMP   DWPT   RELH   MIXR   DRCT   SKNT   THTA   THTE   THTV
+                    hPa      m      C      C      %    g/kg    deg   knot     K      K      K 
+---------------------------------------------------------------------------------------------\n"""
+
+
 link = "https://www.ogimet.com/cgi-bin/gsynres?ind=10444&lang=en&decoded=yes&ndays=2&ano=2017&mes=04&day=07&hora=23"
 
 header2 = """UP.DAT          2.0             Header structure with coordinate parameters                     
@@ -510,6 +608,7 @@ Produced by READ62 Version: 5.5  Level: 030402
 NONE    """
 
 def generate2(tables, sn, output):
+    print(tables)
     data = header2
     startdate = tables[0][0]
     enddate = tables[-1][0]
@@ -536,7 +635,7 @@ def generate2(tables, sn, output):
     else:
         print(data)
 
-def process(link, output, dat, handler=print, verbose=False, second=False, remtags=False):
+def process(link, output, dat, handler=print, verbose=False, second=False, remtags=False, third=False):
     # locale.setlocale(locale.LC_TIME, "en-US")
     if diff_link(link) == 2:
         if verbose:
@@ -551,14 +650,20 @@ def process(link, output, dat, handler=print, verbose=False, second=False, remta
             with open(output, 'w') as f:
                 f.write(parser_a.res)
         else:
-            parser = MyHTMLParser3()
+            if third:
+                parser = MyHTMLParser7()
+            else:
+                parser = MyHTMLParser3()
             parser.feed(t)
             if verbose:
                 for table in parser.tables:
                     handler(str(table[0]))
                     handler(tabulate(table[1]))
                     handler('Generating report...')
-            generate2(parser.tables, parser.sn, output)
+            if third:
+                generate4(parser.tables, output)
+            else:
+                generate2(parser.tables, parser.sn, output)
         if verbose:
             handler('Report generated.')
         return
@@ -701,6 +806,7 @@ def main():
     input_parser.add_argument("-d", "--dat", help="Dat file", action="store")
     input_parser.add_argument("-v", "--verbose", help="VErbose output", action="store_true")
     input_parser.add_argument("-s", "--second", help="Second version", action="store_true")
+    input_parser.add_argument("-s", "--third", help="Third version", action="store_true")
     input_parser.add_argument("-r", "--remtags", help="Remove tags", action="store_true")
 
     arguments = input_parser.parse_args(sys.argv[1:])
@@ -722,7 +828,7 @@ def main():
     else:
         dat = arguments.dat
 
-    process(link, output, dat, verbose=arguments.verbose, second=arguments.second, remtags=arguments.remtags)
+    process(link, output, dat, verbose=arguments.verbose, second=arguments.second, remtags=arguments.remtags, third=arguments.third)
 
 if __name__ == '__main__':
     main()
